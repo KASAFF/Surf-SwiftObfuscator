@@ -76,17 +76,21 @@ final class StringObfuscator {
 
     func obfuscateLocalizationValues() -> String {
         let regexPattern = "\"(.+?)\"\\s*=\\s*\"(.+?)\";"
+        let obfuscatedValueRegexPattern = "^(\\d+)(,\\d+)*$"
         var obfuscatedContents = contents
 
         do {
             let regex = try NSRegularExpression(pattern: regexPattern)
+            let obfuscatedValueRegex = try NSRegularExpression(pattern: obfuscatedValueRegexPattern)
             let results = regex.matches(in: contents, range: fullFileRange).reversed()
 
             for match in results {
                 if let valueRange = Range(match.range(at: 2), in: contents) {
                     let originalValue = String(contents[valueRange])
                     let inputStringKeys = ["%@", "%d", "%.0f"]
-                    if inputStringKeys.contains(where: originalValue.contains) {
+                    // Пропускаем если ключ содержит строку из inputStringKeys или если значение уже зашифровано
+                    if inputStringKeys.contains(where: originalValue.contains) ||
+                        obfuscatedValueRegex.firstMatch(in: originalValue, options: [], range: NSRange(location: 0, length: originalValue.utf16.count)) != nil {
                         continue
                     }
                     let bytes = bytesByObfuscatingString(string: originalValue)
